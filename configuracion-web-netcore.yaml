@@ -1,0 +1,52 @@
+---
+- name: Configurar entorno para aplicación web en .NET Core
+  hosts: amazon_ec2
+  become: true
+  tasks:
+    - name: Actualizar paquetes e instalar dependencias
+      apt:
+        update_cache: yes
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+        state: present
+
+    - name: Agregar clave GPG de Microsoft
+      apt_key:
+        url: https://packages.microsoft.com/keys/microsoft.asc
+        state: present
+
+    - name: Agregar repositorio de paquetes de Microsoft
+      apt_repository:
+        repo: 'deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-focal-prod focal main'
+        state: present
+
+    - name: Instalar .NET Core SDK
+      apt:
+        name: dotnet-sdk-5.0
+        state: present
+
+    - name: Clonar repositorio con código espagueti
+      git:
+        repo: 'https://github.com/tectijuana/app-web-espagueti.git'
+        dest: /home/ubuntu/app-web-espagueti
+        version: master
+
+    - name: Cambiar propietario del directorio de la aplicación
+      file:
+        path: /home/ubuntu/app-web-espagueti
+        owner: ubuntu
+        group: ubuntu
+        recurse: yes
+
+    - name: Habilitar el puerto 5000 en el firewall
+      ufw:
+        rule: allow
+        port: 5000
+        proto: tcp
+
+    - name: Iniciar la aplicación (opcional)
+      shell: |
+        cd /home/ubuntu/app-web-espagueti
+        dotnet run &
